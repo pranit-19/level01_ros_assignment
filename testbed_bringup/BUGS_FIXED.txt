@@ -1,0 +1,134 @@
+------------------------------------------------------------
+Bug #1 — Map YAML referenced a nonexistent image
+
+Location:
+testbed_bringup/maps/testbed_world.yaml
+
+Symptom:
+The supplied map YAML referenced wrong_path_testbed_world.pgm, which does not
+exist in the repository. Nav2 map_server cannot load that image.
+
+Root Cause:
+The image field contained an incorrect filename.
+
+Fix:
+Changed image to testbed_world.pgm. The relative path is resolved from the map
+YAML directory by map_server.
+
+Verification:
+STATIC CONFIRMATION: testbed_world.pgm exists beside the YAML and the previous
+filename does not. NEEDS LOCAL VERIFICATION: launch map_server on ROS 2 Humble.
+------------------------------------------------------------
+Bug #2 — Map assets were not installed with testbed_bringup
+
+Location:
+testbed_bringup/CMakeLists.txt
+
+Symptom:
+The install rule copied launch/ only. A launch file using the installed
+package-share path could not find maps/testbed_world.yaml after colcon build.
+
+Root Cause:
+The maps directory was omitted from the install(DIRECTORY ...) rule.
+
+Fix:
+Added maps to the testbed_bringup install rule.
+
+Verification:
+STATIC CONFIRMATION: the CMake install rule now includes maps. NEEDS LOCAL
+VERIFICATION: rebuild and confirm the map exists under install/.../share/
+testbed_bringup/maps/.
+------------------------------------------------------------
+Bug #3 — Invalid ament_package invocation
+
+Location:
+testbed_description/CMakeLists.txt
+
+Symptom:
+The package finalization command was written as ament_package without CMake
+call parentheses.
+
+Root Cause:
+Malformed CMake command syntax.
+
+Fix:
+Changed ament_package to ament_package().
+
+Verification:
+STATIC CONFIRMATION: the invocation now has standard CMake syntax. NEEDS LOCAL
+VERIFICATION: build testbed_description with colcon on ROS 2 Humble.
+------------------------------------------------------------
+Bug #4 — Stray character in the Gazebo IMU plugin parameter
+
+Location:
+testbed_description/urdf/testbed.gazebo
+
+Symptom:
+The initial_orientation_as_reference element ended with an extra > character.
+
+Root Cause:
+Typographical error in the Gazebo sensor plugin configuration.
+
+Fix:
+Removed the stray > so the element contains only the intended false value.
+
+Verification:
+STATIC CONFIRMATION: the configuration text is now well formed for the intended
+boolean value. NEEDS LOCAL VERIFICATION: inspect Gazebo startup logs and /imu.
+------------------------------------------------------------
+Bug #5 — Invalid xacro executable substitution in robot description launch
+
+Location:
+testbed_description/launch/robot_description.launch.py
+
+Symptom:
+Launching testbed_full_bringup.launch.py failed with an executable lookup error
+containing a TextSubstitution object instead of the xacro executable name.
+
+Root Cause:
+FindExecutable(name="xacro") was incorrectly wrapped in PathJoinSubstitution.
+
+Fix:
+Use the direct Command invocation `xacro <testbed.xacro path>`.
+
+Verification:
+RUNTIME CONFIRMATION: after this fix and installing xacro, the starter Gazebo
+and RViz simulation launched successfully.
+------------------------------------------------------------
+Bug #6 — xacro runtime dependency was not declared
+
+Location:
+testbed_description/package.xml
+
+Symptom:
+The starter launch required xacro, but rosdep did not install it and launch
+failed with "No such file or directory: 'xacro'".
+
+Root Cause:
+The package manifest omitted its direct xacro runtime dependency.
+
+Fix:
+Added <exec_depend>xacro</exec_depend>.
+
+Verification:
+RUNTIME CONFIRMATION: ros-humble-xacro was installed and the robot description
+launch subsequently started.
+------------------------------------------------------------
+Bug #7 — Gazebo ROS runtime dependency was not declared
+
+Location:
+testbed_gazebo/package.xml
+
+Symptom:
+Launching the simulation failed because package gazebo_ros was not found.
+
+Root Cause:
+The package manifest omitted its direct gazebo_ros runtime dependency.
+
+Fix:
+Added <exec_depend>gazebo_ros</exec_depend>.
+
+Verification:
+RUNTIME CONFIRMATION: after installing ros-humble-gazebo-ros-pkgs, Gazebo and
+RViz launched; /scan, /odom, TF, and /cmd_vel were observed.
+------------------------------------------------------------
